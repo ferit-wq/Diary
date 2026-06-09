@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Мой Голосовой Дневник</title>
+    <style>
+        :root {
+            --bg-color: #f2f4f7;
+            --card-bg: #ffffff;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px 15px cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding-bottom: 40px;
+        }
+        h1 { font-size: 24px; text-align: center; margin-bottom: 5px; color: #111827; }
+        h2 { font-size: 20px; margin-top: 30px; color: #111827; }
+        .date { text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 25px; font-weight: 500; }
+        
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            margin-bottom: 20px;
+        }
+        .card-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; display: block; }
+        
+        /* Чек-лист привычек */
+        .habit-item { display: flex; align-items: center; margin-bottom: 12px; font-size: 15px; cursor: pointer; }
+        .habit-item:last-child { margin-bottom: 0; }
+        .habit-item input {
+            appearance: none; -webkit-appearance: none;
+            width: 22px; height: 22px; border: 2px solid #d1d5db;
+            border-radius: 6px; margin-right: 12px; outline: none;
+            display: inline-grid; place-content: center; background: #fff; transition: 0.1s;
+        }
+        .habit-item input:checked { background: var(--success); border-color: var(--success); }
+        .habit-item input:checked::before {
+            content: "✓"; color: white; font-size: 14px; font-weight: bold;
+        }
+
+        /* Вопросы дневника */
+        .question-block { margin-bottom: 20px; }
+        .question-block:last-child { margin-bottom: 0; }
+        .input-group { display: flex; gap: 10px; margin-top: 8px; }
+        textarea {
+            flex: 1; height: 80px; padding: 12px;
+            border: 1px solid #e5e7eb; border-radius: 10px;
+            resize: none; font-size: 15px; font-family: inherit;
+            background: #f9fafb; outline: none; transition: 0.2s;
+        }
+        textarea:focus { border-color: var(--primary); background: #fff; }
+        
+        /* Кнопки */
+        .mic-btn {
+            background: #eff6ff; border: none; width: 50px;
+            border-radius: 10px; font-size: 22px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: 0.2s;
+        }
+        .mic-btn.recording {
+            background: var(--danger); animation: pulse 1.5s infinite;
+        }
+        
+        .btn {
+            width: 100%; border: none; padding: 14px;
+            font-size: 16px; font-weight: 600; border-radius: 12px;
+            cursor: pointer; margin-top: 10px; display: block; text-align: center;
+        }
+        .btn-primary { background: var(--success); color: white; }
+        .btn-primary:active { background: #059669; }
+        
+        .sync-group { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-secondary { background: #e5e7eb; color: var(--text); font-size: 13px; padding: 10px; margin-top: 0; flex: 1; }
+        .import-label {
+            background: #e5e7eb; color: var(--text); font-size: 13px; padding: 10px;
+            border-radius: 12px; font-weight: 600; text-align: center; flex: 1; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Лента истории */
+        .history-item { background: var(--card-bg); padding: 18px; border-radius: 14px; margin-bottom: 12px; border-left: 4px solid var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+        .history-date { font-weight: bold; color: #111827; margin-bottom: 6px; font-size: 15px; }
+        .history-habits { font-size: 13px; color: var(--success); margin-bottom: 8px; font-weight: 500; }
+        .history-text { font-size: 14px; margin: 6px 0; line-height: 1.4; }
+        .history-text strong { color: var(--text-muted); font-weight: 500; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 Мой Дневник</h1>
+    <div class="date" id="current-date"></div>
+
+    <div class="card">
+        <span class="card-title">🎯 Чек-лист на сегодня:</span>
+        <label class="habit-item"><input type="checkbox" id="habit1"> Сделал зарядку 🏃‍♂️</label>
+        <label class="habit-item"><input type="checkbox" id="habit2"> Выпил норму воды 💧</label>
+        <label class="habit-item"><input type="checkbox" id="habit3"> Почитал / Учился 📚</label>
+        <label class="habit-item"><input type="checkbox" id="habit4"> День прошел продуктивно 🎯</label>
+    </div>
+
+    <div class="card">
+        <span class="card-title">✍️ Итоги дня:</span>
+        
+        <div class="question-block">
+            <label style="font-size: 14px; font-weight: 500;">1. Что сегодня порадовало?</label>
+            <div class="input-group">
+                <textarea id="q1" placeholder="Нажми микрофон и говори..."></textarea>
+                <button class="mic-btn" id="btn-q1" onclick="toggleSpeech('q1', this)">🎙️</button>
+            </div>
+        </div>
+
+        <div class="question-block">
+            <label style="font-size: 14px; font-weight: 500;">2. Главный инсайт или мысль дня?</label>
+            <div class="input-group">
+                <textarea id="q2" placeholder="Нажми микрофон и говори..."></textarea>
+                <button class="mic-btn" id="btn-q2" onclick="toggleSpeech('q2', this)">🎙️</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveDay()">💾 Сохранить этот день</button>
+    
+    <div class="sync-group">
+        <button class="btn btn-secondary" onclick="exportData()">📥 Скачать JSON</button>
+        <label class="import-label">
+            📤 Загрузить JSON
+            <input type="file" id="import-file" style="display:none;" onchange="importData(this)">
+        </label>
+    </div>
+
+    <h2>📖 Прошлые дни</h2>
+    <div id="history-container"></div>
+</div>
+
+<script>
+    // Настройка даты
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('current-date').innerText = new Date().toLocaleDateString('ru-RU', options);
+    const todayISO = new Date().toISOString().split('T')[0];
+
+    // Инициализация распознавания речи для iOS Safari / Chrome
+    let recognition;
+    let currentButton = null;
+    let currentTargetId = null;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'ru-RU';
+        recognition.interimResults = false;
+        recognition.continuous = false;
+    }
+
+    function toggleSpeech(targetId, button) {
+        if (!recognition) {
+            alert("Голосовой ввод недоступен. Убедитесь, что сайт открыт по защищенному протоколу HTTPS.");
+            return;
+        }
+
+        if (button.classList.contains('recording')) {
+            recognition.stop();
+            return;
+        }
+
+        if (currentButton) {
+            recognition.stop();
+        }
+
+        currentTargetId = targetId;
+        currentButton = button;
+
+        button.classList.add('recording');
+        button.innerHTML = '🛑';
+        
+        try {
+            recognition.start();
+        } catch (e) {
+            console.log("Рестарт распознавания...");
+        }
+    }
+
+    if (recognition) {
+        recognition.onresult = function(event) {
+            const text = event.results[0][0].transcript;
+            const textarea = document.getElementById(currentTargetId);
+            if (textarea) {
+                textarea.value = textarea.value ? textarea.value + " " + text : text;
+            }
+        };
+
+        recognition.onerror = function(event) {
+            if (event.error === 'not-allowed') {
+                alert("Пожалуйста, разрешите доступ к микрофону в настройках Safari для этого сайта.");
+            }
+            resetMicButton();
+        };
+
+        recognition.onend = function() {
+            resetMicButton();
+        };
+    }
+
+    function resetMicButton() {
+        if (currentButton) {
+            currentButton.classList.remove('recording');
+            currentButton.innerHTML = '🎙️';
+            currentButton = null;
+            currentTargetId = null;
+        }
+    }
+
+    // Логика сохранения данных в LocalStorage
+    function saveDay() {
+        let diaryData = JSON.parse(localStorage.getItem('voice_diary_ios')) || {};
+
+        diaryData[todayISO] = {
+            habits: {
+                "Зарядка": document.getElementById('habit1').checked,
+                "Вода": document.getElementById('habit2').checked,
+                "Обучение": document.getElementById('habit3').checked,
+                "Продуктивность": document.getElementById('habit4').checked
+            },
+            answers: {
+                "Радость дня": document.getElementById('q1').value,
+                "Инсайт дня": document.getElementById('q2').value
+            }
+        };
+
+        localStorage.setItem('voice_diary_ios', JSON.stringify(diaryData));
+        alert('Запись за сегодня успешно сохранена в браузере!');
+        loadHistory();
+        
+        // Очистим форму для наглядности
+        document.getElementById('q1').value = '';
+        document.getElementById('q2').value = '';
+        document.querySelectorAll('.habit-item input').forEach(i => i.checked = false);
+    }
+
+    // Отображение истории
+    function loadHistory() {
+        const diaryData = JSON.parse(localStorage.getItem('voice_diary_ios')) || {};
+        const container = document.getElementById('history-container');
+        container.innerHTML = '';
+
+        const sortedDates = Object.keys(diaryData).sort().reverse();
+
+        if (sortedDates.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size: 14px;">Историй пока нет. Заполните первый день!</p>';
+            return;
+        }
+
+        sortedDates.forEach(date => {
+            const day = diaryData[date];
+            const item = document.createElement('div');
+            item.className = 'history-item';
+
+            // Красивый вывод даты
+            const formattedDate = new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+
+            let habitsText = [];
+            for (let h in day.habits) {
+                if (day.habits[h]) habitsText.push(`✅ ${h}`);
+            }
+
+            item.innerHTML = `
+                <div class="history-date">📅 ${formattedDate}</div>
+                <div class="history-habits">
+                    ${habitsText.length > 0 ? habitsText.join('  ') : '🔘 Привычки не отмечены'}
+                </div>
+                <div class="history-text"><strong>Радость:</strong> ${day.answers["Радость дня"] || '—'}</div>
+                <div class="history-text"><strong>Инсайт:</strong> ${day.answers["Инсайт дня"] || '—'}</div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    // Экспорт в файл
+    function exportData() {
+        const dataStr = localStorage.getItem('voice_diary_ios');
+        if (!dataStr || dataStr === '{}') {
+            alert('Дневник пока пуст, нечего экспортировать.');
+            return;
+        }
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `diary_backup_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // Импорт из файла
+    function importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (typeof imported === 'object' && imported !== null) {
+                    const existing = JSON.parse(localStorage.getItem('voice_diary_ios')) || {};
+                    const merged = { ...existing, ...imported };
+                    localStorage.setItem('voice_diary_ios', JSON.stringify(merged));
+                    alert('Данные успешно загружены и объединены с текущими!');
+                    loadHistory();
+                } else {
+                    alert('Неверный формат файла дневника.');
+                }
+            } catch (err) {
+                alert('Ошибка чтения файла. Убедитесь, что выбрали правильный .json резервной копии.');
+            }
+        };
+        reader.readAsText(file);
+        input.value = ''; // сброс элемента
+    }
+
+    // Стартовая загрузка при открытии
+    loadHistory();
+</script>
+
+</body>
+</html>
