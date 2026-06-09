@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест микрофона</title>
+</head>
+<body>
+    <h1>Тест доступа</h1>
+    <button id="btn">Начать тест</button>
+    <p id="status"></p>
+    <script>
+        document.getElementById('btn').onclick = () => {
+            if ('webkitSpeechRecognition' in window) {
+                const rec = new webkitSpeechRecognition();
+                rec.onstart = () => document.getElementById('status').innerText = "Микрофон включен!";
+                rec.onerror = (e) => document.getElementById('status').innerText = "Ошибка: " + e.error;
+                rec.start();
+            } else {
+                document.getElementById('status').innerText = "Ваш браузер не поддерживает микрофон";
+            }
+        };
+    </script>
+</body>
+</html>
